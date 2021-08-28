@@ -16,6 +16,9 @@ ESP8266WebServer server(80);
 
 // global variables
 uint8_t LED1pin = D3;
+uint8_t LED2pin = D3;
+uint8_t LED3pin = D3;
+uint8_t LED4pin = D3;
 uint8_t LED1status;
 String PATH = "/state.txt";
 
@@ -30,6 +33,9 @@ void handle_led1off();
 void handle_NotFound();
 String SendHTML(uint8_t);
 void checkOpen(File);
+
+void turnAllOn();
+void turnAllOff();
 
 void setup() {
   Serial.begin(115200);
@@ -100,16 +106,32 @@ void handle_OnConnect() {
   server.send(200, "text/html", SendHTML(LED1status)); 
 }
 
+void turnAllOn(){
+  digitalWrite(LED1pin, LOW);
+  digitalWrite(LED2pin, LOW);
+  digitalWrite(LED3pin, LOW);
+  digitalWrite(LED4pin, LOW);
+}
+
+void turnAllOff(){
+  digitalWrite(LED1pin, HIGH);
+  digitalWrite(LED2pin, HIGH);
+  digitalWrite(LED3pin, HIGH);
+  digitalWrite(LED4pin, HIGH);
+}
+
 void handle_led1on() {
   LED1status = 1;
-  digitalWrite(LED1pin, HIGH);
+  // turn on all lights
+  turnAllOn();
   Serial.println("GPIO7 Status: ON");
   server.send(200, "text/html", SendHTML(true)); 
 }
 
 void handle_led1off() {
   LED1status = 0;
-  digitalWrite(LED1pin, LOW);
+  // turn off all lights
+  turnAllOff();
   Serial.println("GPIO7 Status: OFF");
   server.send(200, "text/html", SendHTML(false)); 
 }
