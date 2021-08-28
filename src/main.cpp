@@ -3,26 +3,28 @@
 #include <ESP8266WebServer.h>
 #include "FS.h"
 
+// TODO: add sleep schedule (to extend lifetime?)
+
 /* Put your SSID & Password */
 const char* ssid = "NodeMCU";  // Enter SSID here
 const char* password = "12345678";  //Enter Password here
 
 /* Put IP Address details */
-IPAddress local_ip(192,168,1,1);
-IPAddress gateway(192,168,1,1);
+IPAddress local_ip(10,1,1,1);
+IPAddress gateway(10,1,1,1);
 IPAddress subnet(255,255,255,0);
 
 ESP8266WebServer server(80);
 
 // global variables
 uint8_t LED1pin = D3;
-uint8_t LED2pin = D3;
-uint8_t LED3pin = D3;
-uint8_t LED4pin = D3;
-uint8_t LED1status;
+uint8_t LED2pin = D1;
+uint8_t LED3pin = D2;
+uint8_t LED4pin = D4;
+uint8_t LEDstatus;
 String PATH = "/state.txt";
 
-uint8_t LED1_remember = false;
+uint8_t LED_remember = false;
 char buffer[2];
 File f;
 
@@ -36,6 +38,7 @@ void checkOpen(File);
 
 void turnAllOn();
 void turnAllOff();
+void setUpPins(uint8_t);
 
 void setup() {
   Serial.begin(115200);
@@ -53,20 +56,19 @@ void setup() {
 
     String value = f.readStringUntil('\n');
     value.toCharArray(buffer, 2);
-    LED1status = atoi(buffer);
+    LEDstatus = atoi(buffer);
 
     Serial.println("[INFO] Found saved state: " + String(atoi(buffer)));
-    Serial.println(LED1status);
+    Serial.println(LEDstatus);
   }else{
     f = SPIFFS.open(PATH, "w+");
     checkOpen(f);
-    LED1status = false;
+    LEDstatus = false;
   }
 
-  LED1_remember = LED1status;
+  LED_remember = LEDstatus;
 
-  pinMode(LED1pin, OUTPUT);
-  digitalWrite(LED1pin, LED1status);
+  setUpPins(LEDstatus);
 
   // configure webserver
   WiFi.softAP(ssid, password);
@@ -85,25 +87,25 @@ void setup() {
 void loop() {
   server.handleClient();
 
-  if(LED1status != LED1_remember){
+  if(LEDstatus != LED_remember){
     Serial.println("[INFO] new value written to eeprom");
-    char write_value = (LED1status)? '1':'0';
+    char write_value = (LEDstatus)? '1':'0';
     Serial.println(write_value);
     f.close();
     f = SPIFFS.open(PATH, "w+");
     f.println(write_value);
     f.flush();
 
-    LED1_remember = LED1status;
+    LED_remember = LEDstatus;
   }
 }
 
 void handle_OnConnect() {
-  String saved_state = (LED1status)? "ON":"OFF";
-  digitalWrite(LED1pin, LED1status);
+  String saved_state = (LEDstatus)? "ON":"OFF";
+  digitalWrite(LED1pin, LEDstatus);
   
   Serial.println("GPIO7 Saved State: " + saved_state);
-  server.send(200, "text/html", SendHTML(LED1status)); 
+  server.send(200, "text/html", SendHTML(LEDstatus)); 
 }
 
 void turnAllOn(){
@@ -120,8 +122,20 @@ void turnAllOff(){
   digitalWrite(LED4pin, HIGH);
 }
 
+void setUpPins(uint8_t status){
+  pinMode(LED1pin, OUTPUT);
+  pinMode(LED2pin, OUTPUT);
+  pinMode(LED3pin, OUTPUT);
+  pinMode(LED4pin, OUTPUT);
+
+  digitalWrite(LED1pin, status);
+  digitalWrite(LED2pin, status);
+  digitalWrite(LED3pin, status);
+  digitalWrite(LED4pin, status);
+}
+
 void handle_led1on() {
-  LED1status = 1;
+  LEDstatus = 1;
   // turn on all lights
   turnAllOn();
   Serial.println("GPIO7 Status: ON");
@@ -129,7 +143,7 @@ void handle_led1on() {
 }
 
 void handle_led1off() {
-  LED1status = 0;
+  LEDstatus = 0;
   // turn off all lights
   turnAllOff();
   Serial.println("GPIO7 Status: OFF");
